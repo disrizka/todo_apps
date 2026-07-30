@@ -52,4 +52,12 @@ class PreferenceHandler {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_token);
   }
+
+  // Logout: hapus semua data session
+  static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_id);
+    await prefs.remove(_token);
+    await prefs.remove(_lookWelcoming);
+  }
 }

@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../models/todo_model.dart';
-import '../../services/service.dart';
+import 'package:todo_apps/models/todo_model.dart';
+import 'package:todo_apps/services/pref_handler.dart';
+import 'package:todo_apps/services/service.dart';
 
-/// Halaman form untuk menambah tugas baru atau mengedit tugas yang
-/// sudah ada. Satu widget dipakai untuk kedua mode (tambah & edit)
-/// agar kode tidak duplikat (DRY).
 class TodoFormScreen extends StatefulWidget {
-  /// Jika null -> mode tambah tugas baru.
-  /// Jika terisi -> mode edit tugas yang sudah ada.
-  final TodoModel? existingTodo;
+  final Todo? existingTodo;
 
   const TodoFormScreen({super.key, this.existingTodo});
 
@@ -23,8 +19,6 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
   final TodoApiService _apiService = TodoApiService();
 
   late final TextEditingController _titleController;
-  late final TextEditingController _descriptionController;
-  DateTime? _selectedDeadline;
   bool _isCompleted = false;
   bool _isSaving = false;
 
@@ -32,69 +26,44 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
   void initState() {
     super.initState();
     final todo = widget.existingTodo;
-    _titleController = TextEditingController(text: todo?.title ?? '');
-    _descriptionController = TextEditingController(text: todo?.description ?? '');
-    _selectedDeadline = todo?.deadline;
-    _isCompleted = todo?.isCompleted ?? false;
+    _titleController = TextEditingController(text: todo?.todo ?? '');
+    _isCompleted = todo?.completed ?? false;
   }
 
   @override
   void dispose() {
     _titleController.dispose();
-    _descriptionController.dispose();
     super.dispose();
   }
 
-  /// Menampilkan date picker untuk memilih tanggal deadline.
-  Future<void> _pickDeadline() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDeadline ?? DateTime.now(),
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-    );
-
-    if (picked != null) {
-      setState(() => _selectedDeadline = picked);
-    }
-  }
-
-  /// Memvalidasi form lalu menyimpan data (create atau update) ke API.
   Future<void> _saveTodo() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
 
-    final newTodo = TodoModel(
-      id: widget.existingTodo?.id ?? DateTime.now().millisecondsSinceEpoch,
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim(),
-      deadline: _selectedDeadline,
-      isCompleted: _isCompleted,
+    final loggedInId = await PreferenceHandler.getId() ?? 1;
+
+    final newTodo = Todo(
+      id: widget.existingTodo?.id,
+      todo: _titleController.text.trim(),
+      completed: _isCompleted,
+      userId: widget.existingTodo?.userId ?? loggedInId,
     );
 
     try {
-      final TodoModel savedTodo = widget.isEditMode
+      final Todo savedTodo = widget.isEditMode
           ? await _apiService.updateTodo(newTodo)
           : await _apiService.addTodo(newTodo);
 
-      // DummyJSON tidak menyimpan field description & deadline,
-      // sehingga digabungkan kembali dengan data lokal supaya
-      // tetap tampil di aplikasi (simulasi penyimpanan lokal).
-      final mergedTodo = savedTodo.copyWith(
-        description: newTodo.description,
-        deadline: newTodo.deadline,
-      );
-
       if (mounted) {
-        Navigator.pop(context, mergedTodo);
+        Navigator.pop(context, savedTodo);
       }
     } catch (e) {
       setState(() => _isSaving = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan tugas: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal menyimpan tugas: $e')));
       }
     }
   }
@@ -121,18 +90,6 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
                   : null,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Deskripsi',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-              maxLines: 4,
-            ),
-            const SizedBox(height: 16),
-            _buildDeadlinePicker(),
-            const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Sudah Selesai'),
@@ -158,26 +115,6 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDeadlinePicker() {
-    final label = _selectedDeadline != null
-        ? '${_selectedDeadline!.day.toString().padLeft(2, '0')}/'
-            '${_selectedDeadline!.month.toString().padLeft(2, '0')}/'
-            '${_selectedDeadline!.year}'
-        : 'Pilih tanggal deadline';
-
-    return InkWell(
-      onTap: _pickDeadline,
-      child: InputDecorator(
-        decoration: const InputDecoration(
-          labelText: 'Tanggal Deadline',
-          border: OutlineInputBorder(),
-          suffixIcon: Icon(Icons.calendar_today),
-        ),
-        child: Text(label),
       ),
     );
   }

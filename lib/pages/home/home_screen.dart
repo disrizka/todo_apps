@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../api/api.dart';
-import '../../models/todo_model.dart';
-import '../../services/service.dart';
-import '../../widgets/custom_search_bar.dart';
-import '../../widgets/todo_list_item.dart';
-import '../detail/detail_screen.dart';
-import '../form/todo_form_screen.dart';
+import 'package:todo_apps/models/todo_model.dart';
+import 'package:todo_apps/pages/detail/detail_screen.dart';
+import 'package:todo_apps/pages/form/todo_form_screen.dart';
+import 'package:todo_apps/services/service.dart';
+import 'package:todo_apps/widgets/custom_search_bar.dart';
+import 'package:todo_apps/widgets/todo_list_item.dart';
 
-/// Halaman utama: menampilkan daftar tugas yang diambil dari REST API,
-/// dilengkapi search bar untuk filter judul dan FAB untuk menambah
-/// tugas baru.
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -21,8 +18,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final TodoApiService _apiService = TodoApiService();
   final TextEditingController _searchController = TextEditingController();
 
-  List<TodoModel> _allTodos = [];
-  List<TodoModel> _filteredTodos = [];
+  List<Todo> _allTodos = [];
+  List<Todo> _filteredTodos = [];
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -39,7 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  /// Mengambil data tugas dari API dan menyimpannya ke state.
   Future<void> _loadTodos() async {
     setState(() {
       _isLoading = true;
@@ -55,27 +51,26 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } catch (_) {
       setState(() {
-        _errorMessage = AppStrings.errorLoadMessage;
+        _errorMessage = 'Gagal memuat data. Silakan coba lagi.';
         _isLoading = false;
       });
     }
   }
 
-  /// Memfilter daftar tugas berdasarkan kata kunci pencarian.
   void _onSearchChanged(String query) {
     final keyword = query.toLowerCase().trim();
     setState(() {
       _filteredTodos = keyword.isEmpty
           ? _allTodos
           : _allTodos
-              .where((todo) => todo.title.toLowerCase().contains(keyword))
-              .toList();
+                .where(
+                  (todo) => (todo.todo ?? '').toLowerCase().contains(keyword),
+                )
+                .toList();
     });
   }
 
-  /// Membuka halaman detail tugas. Jika ada perubahan (edit/hapus),
-  /// daftar tugas akan di-refresh.
-  Future<void> _openDetail(TodoModel todo) async {
+  Future<void> _openDetail(Todo todo) async {
     final result = await Navigator.push<Object?>(
       context,
       MaterialPageRoute(builder: (_) => DetailScreen(todo: todo)),
@@ -86,9 +81,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Membuka halaman form untuk menambah tugas baru.
   Future<void> _openAddForm() async {
-    final result = await Navigator.push<TodoModel?>(
+    final result = await Navigator.push<Todo?>(
       context,
       MaterialPageRoute(builder: (_) => const TodoFormScreen()),
     );
@@ -104,10 +98,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.appTitle),
-        centerTitle: true,
-      ),
       body: Column(
         children: [
           CustomSearchBar(
@@ -137,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_filteredTodos.isEmpty) {
       return Center(
         child: Text(
-          AppStrings.emptyListMessage,
+          'Belum ada tugas. Tambahkan tugas baru!',
           style: TextStyle(color: Colors.grey[600]),
         ),
       );
@@ -149,10 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
         itemCount: _filteredTodos.length,
         itemBuilder: (context, index) {
           final todo = _filteredTodos[index];
-          return TodoListItem(
-            todo: todo,
-            onTap: () => _openDetail(todo),
-          );
+          return TodoListItem(todo: todo, onTap: () => _openDetail(todo));
         },
       ),
     );
@@ -167,10 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           Text(_errorMessage!, textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: _loadTodos,
-            child: const Text('Coba Lagi'),
-          ),
+          ElevatedButton(onPressed: _loadTodos, child: const Text('Coba Lagi')),
         ],
       ),
     );

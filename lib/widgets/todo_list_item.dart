@@ -3,14 +3,10 @@ import '../models/todo_model.dart';
 import 'status_badge.dart';
 
 class TodoListItem extends StatelessWidget {
-  final TodoModel todo;
+  final Todo todo;
   final VoidCallback onTap;
 
-  const TodoListItem({
-    super.key,
-    required this.todo,
-    required this.onTap,
-  });
+  const TodoListItem({super.key, required this.todo, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +17,7 @@ class TodoListItem extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         title: Text(
-          todo.title,
+          todo.todo ?? '(Tanpa judul)',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
@@ -30,16 +26,12 @@ class TodoListItem extends StatelessWidget {
           padding: const EdgeInsets.only(top: 6),
           child: Row(
             children: [
-              StatusBadge(isCompleted: todo.isCompleted),
+              StatusBadge(isCompleted: todo.completed ?? false),
               const SizedBox(width: 8),
-              if (todo.deadline != null)
-                Flexible(
-                  child: Text(
-                    'Deadline: ${_formatDate(todo.deadline!)}',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+              Text(
+                'User #${todo.userId ?? '-'}',
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              ),
             ],
           ),
         ),
@@ -47,11 +39,5 @@ class TodoListItem extends StatelessWidget {
         onTap: onTap,
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/'
-        '${date.month.toString().padLeft(2, '0')}/'
-        '${date.year}';
   }
 }

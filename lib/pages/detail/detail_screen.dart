@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../models/todo_model.dart';
-import '../../services/service.dart';
-import '../../widgets/status_badge.dart';
-import '../form/todo_form_screen.dart';
+import 'package:todo_apps/models/todo_model.dart';
+import 'package:todo_apps/pages/form/todo_form_screen.dart';
+import 'package:todo_apps/services/service.dart';
+import 'package:todo_apps/widgets/status_badge.dart';
 
-/// Halaman detail: menampilkan informasi lengkap satu tugas
-/// (judul, deskripsi, status, tanggal deadline), serta tombol
-/// untuk mengedit atau menghapus tugas tersebut.
 class DetailScreen extends StatefulWidget {
-  final TodoModel todo;
+  final Todo todo;
 
   const DetailScreen({super.key, required this.todo});
 
@@ -18,7 +15,7 @@ class DetailScreen extends StatefulWidget {
 
 class _DetailScreenState extends State<DetailScreen> {
   final TodoApiService _apiService = TodoApiService();
-  late TodoModel _todo;
+  late Todo _todo;
   bool _isDeleting = false;
 
   @override
@@ -27,9 +24,8 @@ class _DetailScreenState extends State<DetailScreen> {
     _todo = widget.todo;
   }
 
-  /// Membuka form edit dan memperbarui tampilan jika ada perubahan data.
   Future<void> _editTodo() async {
-    final updated = await Navigator.push<TodoModel?>(
+    final updated = await Navigator.push<Todo?>(
       context,
       MaterialPageRoute(builder: (_) => TodoFormScreen(existingTodo: _todo)),
     );
@@ -39,13 +35,12 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
-  /// Menampilkan dialog konfirmasi sebelum menghapus tugas.
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Hapus Tugas'),
-        content: Text('Yakin ingin menghapus "${_todo.title}"?'),
+        content: Text('Yakin ingin menghapus "${_todo.todo ?? ''}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -67,16 +62,16 @@ class _DetailScreenState extends State<DetailScreen> {
   Future<void> _deleteTodo() async {
     setState(() => _isDeleting = true);
     try {
-      await _apiService.deleteTodo(_todo.id);
+      await _apiService.deleteTodo(_todo.id!);
       if (mounted) {
         Navigator.pop(context, 'deleted');
       }
     } catch (_) {
       setState(() => _isDeleting = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal menghapus tugas.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Gagal menghapus tugas.')));
       }
     }
   }
@@ -107,28 +102,21 @@ class _DetailScreenState extends State<DetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _todo.title,
+                    _todo.todo ?? '(Tanpa judul)',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  StatusBadge(isCompleted: _todo.isCompleted),
+                  StatusBadge(isCompleted: _todo.completed ?? false),
                   const SizedBox(height: 20),
-                  _buildSectionTitle('Deskripsi'),
-                  Text(
-                    _todo.description.isEmpty
-                        ? '- Tidak ada deskripsi -'
-                        : _todo.description,
-                    style: const TextStyle(fontSize: 15, height: 1.4),
-                  ),
+                  _buildSectionTitle('ID Tugas'),
+                  Text('#${_todo.id}', style: const TextStyle(fontSize: 15)),
                   const SizedBox(height: 20),
-                  _buildSectionTitle('Tanggal Deadline'),
+                  _buildSectionTitle('Dibuat oleh'),
                   Text(
-                    _todo.deadline != null
-                        ? _formatDate(_todo.deadline!)
-                        : '- Belum ditentukan -',
+                    'User ID ${_todo.userId ?? '-'}',
                     style: const TextStyle(fontSize: 15),
                   ),
                 ],
@@ -149,11 +137,5 @@ class _DetailScreenState extends State<DetailScreen> {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/'
-        '${date.month.toString().padLeft(2, '0')}/'
-        '${date.year}';
   }
 }

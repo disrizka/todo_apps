@@ -1,22 +1,23 @@
 // To parse this JSON data, do
 //
-//     final todoModel = todoModelFromJson(jsonString);
+//     final todoResponse = todoResponseFromJson(jsonString);
 
 import 'dart:convert';
 
-TodoModel todoModelFromJson(String str) => TodoModel.fromJson(json.decode(str));
+TodoResponse todoResponseFromJson(String str) =>
+    TodoResponse.fromJson(json.decode(str));
 
-String todoModelToJson(TodoModel data) => json.encode(data.toJson());
+String todoResponseToJson(TodoResponse data) => json.encode(data.toJson());
 
-class TodoModel {
+class TodoResponse {
   final List<Todo>? todos;
   final int? total;
   final int? skip;
   final int? limit;
 
-  TodoModel({this.todos, this.total, this.skip, this.limit});
+  TodoResponse({this.todos, this.total, this.skip, this.limit});
 
-  factory TodoModel.fromJson(Map<String, dynamic> json) => TodoModel(
+  factory TodoResponse.fromJson(Map<String, dynamic> json) => TodoResponse(
     todos: json["todos"] == null
         ? []
         : List<Todo>.from(json["todos"]!.map((x) => Todo.fromJson(x))),
